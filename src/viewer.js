@@ -1,48 +1,106 @@
-/* Copyright (c) 2016, Art Compiler LLC */
+/* Copyright (c) 2017, Art Compiler LLC */
 /* @flow */
 import {assert, message, messages, reserveCodeRange} from "./assert";
 import * as React from "react";
 import * as d3 from "d3";
-
-window.gcexports.viewer = (function () {
+window.gcexports.viewer = (() => {
   function capture(el) {
     return null;
+  }
+  function draw(data) {
+    let totalCount = 30;
+    let width = 540,
+    height = 540,
+    radius = 200;
+    let arc = d3.arc()
+    	.outerRadius(radius - 10)
+    	.innerRadius(100);
+    let pie = d3.pie()
+      .sort(null)
+      .value((d) => {
+	return d.count;
+      });
+    let svg = d3.select('#chart').append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    svg.append("text")
+      .attr("text-anchor", "middle")
+      .attr('font-size', '2em')
+      .attr("dy", ".50em")
+      .text("Release"); 
+    let g = svg.selectAll(".arc")
+      .data(pie(data))
+      .enter().append("g");
+    g.append("path")
+      .attr("d", arc)
+      .style("fill", (d,i) => {
+      	return d.data.color;
+      });
+    g.append("text")
+      .attr("transform", (d) => {
+        let _d = arc.centroid(d);
+        _d[0] *= 1.5;	//multiply by a constant factor
+        _d[1] *= 1.5;	//multiply by a constant factor
+        return "translate(" + _d + ")";
+      })
+      .attr("alignment-baseline", (d) => {
+        let _d = arc.centroid(d);
+        return _d[1] < 0 ? "baseline" : "hanging";
+      })
+      .attr("dy", ".50em")
+      .style("text-anchor", (d) => {
+        let _d = arc.centroid(d);
+        return _d[0] < 0 ? "end" : "start";
+      })
+      .text((d) => {
+        return d.data.name;
+      });
+    g.selectAll("text")
+      .call(wrap, 30);
+  }
+
+  function wrap(text, width) {
+    text.each(function() {
+      var text = d3.select(this),
+      words = text.text().split(/\s+/).reverse(),
+      word,
+      line = [],
+      lineNumber = 0,
+      lineHeight = 0.5, // ems
+      y = text.attr("y"),
+      dy = parseFloat(text.attr("dy")),
+      tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+      while (word = words.pop()) {
+        line.push(word);
+        tspan.text(line.join(" "));
+        if (tspan.node().getComputedTextLength() > width) {
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = text.append("tspan")
+            .attr("x", 0)
+            .attr("y", y)
+            .attr("dy", ++lineNumber * lineHeight + dy + "em")
+            .text(word);
+        }
+      }
+    });
   }
 
   // Graffiticode looks for this React class named Viewer. The compiled code is
   // passed via props in the renderer.
-  var Viewer = React.createClass({
+  let Viewer = React.createClass({
     componentDidMount: function() {
+      draw(this.props.data);
     },
     render: function () {
       // If you have nested components, make sure you send the props down to the
       // owned components.
-      var props = this.props;
-      var obj = props.obj ? [].concat(props.obj) : [];
-      var elts = [];
-      obj.forEach(function (d, i) {
-        var style = {};
-        if (d.style) {
-          Object.keys(d.style).forEach(function (k) {
-            style[k] = d.style[k];
-          });
-        }
-        if (d.value === "$$timer$$") {
-          elts.push(<span key={i} style={style}><Timer {...props}/></span>);
-        } else {
-          let val = d.value ? d.value : d;
-          if (val instanceof Array) {
-            val = val.join(" ");
-          } else if (typeof val !== "string" &&
-                     typeof val !== "number" &&
-                     typeof val !== "boolean") {
-            val = JSON.stringify(val);
-          }
-          elts.push(<span key={i} style={style}>{val}</span>);
-        }
-      });
+      let data = this.props.obj.data;
       return (
-        elts.length > 0 ? <div>{elts}</div> : <div/>
+        <div id="chart" className="chart-container" data={data} />
       );
     },
   });

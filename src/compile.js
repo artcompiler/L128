@@ -35,19 +35,20 @@ let transform = (function() {
     "LIST": list,
     "RECORD": record,
     "BINDING": binding,
-    "ADD" : add,
-    "MUL" : mul,
-    "VAL" : val,
-    "KEY" : key,
-    "LEN" : len,
-    "STYLE" : styleV1,
-    "CONCAT" : concat,
-    "ARG" : arg,
-    "IN" : inData,
-    "LAMBDA" : lambda,
-    "PAREN" : paren,
-    "APPLY" : apply,
-    "MAP" : map,
+    "ADD": add,
+    "MUL": mul,
+    "VAL": val,
+    "KEY": key,
+    "LEN": len,
+    "STYLE": styleV1,
+    "CONCAT": concat,
+    "ARG": arg,
+    "IN": inData,
+    "LAMBDA": lambda,
+    "PAREN": paren,
+    "APPLY": apply,
+    "MAP": map,
+    "DATA": data,
   }];
   let nodePool;
   let version;
@@ -139,6 +140,16 @@ let transform = (function() {
   function inData(node, options, resume) {
     let data = options.data ? options.data : [];
     resume([], data);
+  }
+  function data(node, options, resume) {
+    visit(node.elts[0], options, function (err, val) {
+      if (false) {
+        err = err.concat(error("Argument must be a number.", node.elts[0]));
+      }      
+      resume([].concat(err), {
+        data: val
+      });
+    });
   }
   function arg(node, options, resume) {
     visit(node.elts[0], options, function (err1, val1) {

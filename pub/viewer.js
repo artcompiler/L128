@@ -99,7 +99,7 @@ var assert = function () {
 }();
 
 var message = function message(errorCode) {
-  var args = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
+  var args = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
 
   var str = messages[errorCode];
   if (args) {
@@ -132,9 +132,9 @@ var _react = require("react");
 
 var React = _interopRequireWildcard(_react);
 
-var _d = require("d3");
+var _d2 = require("d3");
 
-var d3 = _interopRequireWildcard(_d);
+var d3 = _interopRequireWildcard(_d2);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -142,67 +142,92 @@ window.gcexports.viewer = function () {
   function capture(el) {
     return null;
   }
+  function draw(data) {
+    var totalCount = 30;
+    var width = 540,
+        height = 540,
+        radius = 200;
+    var arc = d3.arc().outerRadius(radius - 10).innerRadius(100);
+    var pie = d3.pie().sort(null).value(function (d) {
+      return d.count;
+    });
+    var svg = d3.select('#chart').append("svg").attr("width", width).attr("height", height).append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    svg.append("text").attr("text-anchor", "middle").attr('font-size', '2em').attr("dy", ".50em").text("Release");
+    var g = svg.selectAll(".arc").data(pie(data)).enter().append("g");
+    g.append("path").attr("d", arc).style("fill", function (d, i) {
+      return d.data.color;
+    });
+    g.append("text").attr("transform", function (d) {
+      var _d = arc.centroid(d);
+      _d[0] *= 1.5; //multiply by a constant factor
+      _d[1] *= 1.5; //multiply by a constant factor
+      return "translate(" + _d + ")";
+    }).attr("alignment-baseline", function (d) {
+      var _d = arc.centroid(d);
+      return _d[1] < 0 ? "baseline" : "hanging";
+    }).attr("dy", ".50em").style("text-anchor", function (d) {
+      var _d = arc.centroid(d);
+      return _d[0] < 0 ? "end" : "start";
+    }).text(function (d) {
+      return d.data.name;
+    });
+    g.selectAll("text").call(wrap, 30);
+  }
+
+  function wrap(text, width) {
+    text.each(function () {
+      var text = d3.select(this),
+          words = text.text().split(/\s+/).reverse(),
+          word,
+          line = [],
+          lineNumber = 0,
+          lineHeight = 0.5,
+          // ems
+      y = text.attr("y"),
+          dy = parseFloat(text.attr("dy")),
+          tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+      while (word = words.pop()) {
+        line.push(word);
+        tspan.text(line.join(" "));
+        if (tspan.node().getComputedTextLength() > width) {
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+        }
+      }
+    });
+  }
 
   // Graffiticode looks for this React class named Viewer. The compiled code is
   // passed via props in the renderer.
   var Viewer = React.createClass({
     displayName: "Viewer",
 
-    componentDidMount: function componentDidMount() {},
+    componentDidMount: function componentDidMount() {
+      draw(this.props.data);
+    },
     render: function render() {
       // If you have nested components, make sure you send the props down to the
       // owned components.
-      var props = this.props;
-      var obj = props.obj ? [].concat(props.obj) : [];
-      var elts = [];
-      obj.forEach(function (d, i) {
-        var style = {};
-        if (d.style) {
-          Object.keys(d.style).forEach(function (k) {
-            style[k] = d.style[k];
-          });
-        }
-        if (d.value === "$$timer$$") {
-          elts.push(React.createElement(
-            "span",
-            { key: i, style: style },
-            React.createElement(Timer, props)
-          ));
-        } else {
-          var val = d.value ? d.value : d;
-          if (val instanceof Array) {
-            val = val.join(" ");
-          } else if (typeof val !== "string" && typeof val !== "number" && typeof val !== "boolean") {
-            val = JSON.stringify(val);
-          }
-          elts.push(React.createElement(
-            "span",
-            { key: i, style: style },
-            val
-          ));
-        }
-      });
-      return elts.length > 0 ? React.createElement(
-        "div",
-        null,
-        elts
-      ) : React.createElement("div", null);
+      var data = this.props.obj.data;
+      return React.createElement("div", { id: "chart", className: "chart-container", data: data });
     }
   });
   return {
     capture: capture,
     Viewer: Viewer
   };
-}(); /* Copyright (c) 2016, Art Compiler LLC */
+}(); /* Copyright (c) 2017, Art Compiler LLC */
 },{"./assert":1,"d3":3,"react":160}],3:[function(require,module,exports){
-// https://d3js.org Version 4.7.1. Copyright 2017 Mike Bostock.
+// https://d3js.org Version 4.7.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
 	(factory((global.d3 = global.d3 || {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "4.7.1";
+var version = "4.7.4";
 
 var ascending = function(a, b) {
   return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
@@ -3530,7 +3555,7 @@ var transition_attr = function(name, value) {
   return this.attrTween(name, typeof value === "function"
       ? (fullname.local ? attrFunctionNS$1 : attrFunction$1)(fullname, i, tweenValue(this, "attr." + name, value))
       : value == null ? (fullname.local ? attrRemoveNS$1 : attrRemove$1)(fullname)
-      : (fullname.local ? attrConstantNS$1 : attrConstant$1)(fullname, i, value));
+      : (fullname.local ? attrConstantNS$1 : attrConstant$1)(fullname, i, value + ""));
 };
 
 function attrTweenNS(fullname, value) {
@@ -3799,7 +3824,7 @@ var transition_style = function(name, value, priority) {
           .on("end.style." + name, styleRemoveEnd(name))
       : this.styleTween(name, typeof value === "function"
           ? styleFunction$1(name, i, tweenValue(this, "style." + name, value))
-          : styleConstant$1(name, i, value), priority);
+          : styleConstant$1(name, i, value + ""), priority);
 };
 
 function styleTween(name, value, priority) {
@@ -9438,10 +9463,6 @@ function mercatorProjection(project) {
       clipExtent = m.clipExtent,
       x0 = null, y0, x1, y1; // clip extent
 
-  m.center = function(_) {
-    return arguments.length ? (center(_), reclip()) : center();
-  };
-
   m.scale = function(_) {
     return arguments.length ? (scale(_), reclip()) : scale();
   };
@@ -9450,16 +9471,21 @@ function mercatorProjection(project) {
     return arguments.length ? (translate(_), reclip()) : translate();
   };
 
+  m.center = function(_) {
+    return arguments.length ? (center(_), reclip()) : center();
+  };
+
   m.clipExtent = function(_) {
     return arguments.length ? ((_ == null ? x0 = y0 = x1 = y1 = null : (x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1])), reclip()) : x0 == null ? null : [[x0, y0], [x1, y1]];
   };
 
   function reclip() {
     var k = pi$3 * scale(),
-        t = m([0, 0]);
+        t = m(rotation(m.rotate()).invert([0, 0]));
     return clipExtent(x0 == null
-        ? [[t[0] - k, t[1] - k], [t[0] + k, t[1] + k]]
-        : [[Math.max(t[0] - k, x0), y0], [Math.min(t[0] + k, x1), y1]]);
+        ? [[t[0] - k, t[1] - k], [t[0] + k, t[1] + k]] : project === mercatorRaw
+        ? [[Math.max(t[0] - k, x0), y0], [Math.min(t[0] + k, x1), y1]]
+        : [[x0, Math.max(t[1] - k, y0)], [x1, Math.min(t[1] + k, y1)]]);
   }
 
   return reclip();
@@ -10087,12 +10113,6 @@ function intersects(a, b) {
   return dr * dr - 1e-6 > dx * dx + dy * dy;
 }
 
-function distance1(a, b) {
-  var l = a._.r;
-  while (a !== b) l += 2 * (a = a.next)._.r;
-  return l - b._.r;
-}
-
 function distance2(node, x, y) {
   var a = node._,
       b = node.next._,
@@ -10150,15 +10170,13 @@ function packEnclose(circles) {
     do {
       if (sj <= sk) {
         if (intersects(j._, c._)) {
-          if (sj + a._.r + b._.r > distance1(j, b)) a = j; else b = j;
-          a.next = b, b.previous = a, --i;
+          b = j, a.next = b, b.previous = a, --i;
           continue pack;
         }
         sj += j._.r, j = j.next;
       } else {
         if (intersects(k._, c._)) {
-          if (distance1(a, k) > sk + a._.r + b._.r) a = k; else b = k;
-          a.next = b, b.previous = a, --i;
+          a = k, a.next = b, b.previous = a, --i;
           continue pack;
         }
         sk += k._.r, k = k.previous;
@@ -10866,17 +10884,19 @@ var binary = function(parent, x0, y0, x1, y1) {
       else hi = mid;
     }
 
+    if ((valueTarget - sums[k - 1]) < (sums[k] - valueTarget) && i + 1 < k) --k;
+
     var valueLeft = sums[k] - valueOffset,
         valueRight = value - valueLeft;
 
-    if ((y1 - y0) > (x1 - x0)) {
-      var yk = (y0 * valueRight + y1 * valueLeft) / value;
-      partition(i, k, valueLeft, x0, y0, x1, yk);
-      partition(k, j, valueRight, x0, yk, x1, y1);
-    } else {
+    if ((x1 - x0) > (y1 - y0)) {
       var xk = (x0 * valueRight + x1 * valueLeft) / value;
       partition(i, k, valueLeft, x0, y0, xk, y1);
       partition(k, j, valueRight, xk, y0, x1, y1);
+    } else {
+      var yk = (y0 * valueRight + y1 * valueLeft) / value;
+      partition(i, k, valueLeft, x0, y0, x1, yk);
+      partition(k, j, valueRight, x0, yk, x1, y1);
     }
   }
 };
@@ -16342,7 +16362,8 @@ var zoom = function() {
       else if (g.touch1 && g.touch1[2] === t.identifier) delete g.touch1;
     }
     if (g.touch1 && !g.touch0) g.touch0 = g.touch1, delete g.touch1;
-    if (!g.touch0) g.end();
+    if (g.touch0) g.touch0[1] = this.__zoom.invert(g.touch0[0]);
+    else g.end();
   }
 
   zoom.filter = function(_) {
