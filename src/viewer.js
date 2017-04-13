@@ -91,11 +91,9 @@ window.gcexports.viewer = (() => {
     merge.selectAll("text")
       .attr("x", (d) => {
         return -15;
-//        return d.x < 180 === !d.children ? 20 : -20;
       })
       .style("text-anchor", (d) => {
         return "middle";
-//        return d.x < 180 === !d.children ? "start" : "end";
       })
     .transition(t)
       .attr("transform", function(d) {
