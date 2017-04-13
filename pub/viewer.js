@@ -160,11 +160,16 @@ window.gcexports.viewer = function () {
       return d.children;
     }));
 
+    var period = 500;
+    var t = d3.transition().duration(period);
+
     var link = g.selectAll(".link").data(root.descendants().slice(1));
-    link.enter().append("path").attr("class", "link").merge(link).attr("d", function (d) {
+
+    link.exit().remove();
+
+    link.enter().append("path").attr("class", "link").merge(link).attr("opacity", 0).transition().delay(period).attr("opacity", data.name ? .7 : 0).attr("d", function (d) {
       return "M" + project(d.x, d.y) + "C" + project(d.x, (d.y + d.parent.y) / 2) + " " + project(d.parent.x, (d.y + d.parent.y) / 2) + " " + project(d.parent.x, d.parent.y);
     });
-    link.exit().remove();
 
     // BIND
     var node = g.selectAll(".node").data(root.descendants(), function (d) {
@@ -177,19 +182,25 @@ window.gcexports.viewer = function () {
     // ENTER
     var enter = node.enter().append("g").attr("class", function (d) {
       return "node" + (d.children ? " node--internal" : " node--leaf");
+    }).attr("transform", function (d) {
+      return "translate(" + project(d.x, d.y) + ")";
     });
-    enter.append("circle").attr("r", 5);
+    enter.append("circle").attr("opacity", function (d) {
+      return d.data.name ? .7 : 0;
+    }).attr("r", 4);
     enter.append("text").attr("dy", ".31em");
 
     // UPDATE+ENTER
-    var merge = enter.merge(node).attr("transform", function (d) {
+    var merge = enter.merge(node).transition(t).attr("transform", function (d) {
       return "translate(" + project(d.x, d.y) + ")";
     });
     merge.selectAll("text").attr("x", function (d) {
-      return d.x < 180 === !d.children ? 10 : -10;
+      return -15;
+      //        return d.x < 180 === !d.children ? 20 : -20;
     }).style("text-anchor", function (d) {
-      return d.x < 180 === !d.children ? "start" : "end";
-    }).attr("transform", function (d) {
+      return "middle";
+      //        return d.x < 180 === !d.children ? "start" : "end";
+    }).transition(t).attr("transform", function (d) {
       if (doRadial) {
         return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")";
       } else {

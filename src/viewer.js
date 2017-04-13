@@ -33,20 +33,28 @@ window.gcexports.viewer = (() => {
       return d.children;
     }));
 
+
+    let period = 500;
+    let t = d3.transition().duration(period);
+
     let link = 
       g.selectAll(".link")
-        .data(root.descendants().slice(1));
-    link.enter().append("path")
-        .attr("class", "link")
-      .merge(link)
-        .attr("d", function(d) {
-          return "M" + project(d.x, d.y)
-            + "C" + project(d.x, (d.y + d.parent.y) / 2)
-            + " " + project(d.parent.x, (d.y + d.parent.y) / 2)
-            + " " + project(d.parent.x, d.parent.y);
-        });
+      .data(root.descendants().slice(1));
+
     link.exit().remove();
 
+    link.enter().append("path")
+      .attr("class", "link")
+      .merge(link)
+      .attr("opacity", 0)
+    .transition().delay(period)
+      .attr("opacity", data.name ? .7 : 0)
+      .attr("d", (d) => {
+        return "M" + project(d.x, d.y)
+          + "C" + project(d.x, (d.y + d.parent.y) / 2)
+          + " " + project(d.parent.x, (d.y + d.parent.y) / 2)
+          + " " + project(d.parent.x, d.parent.y);
+      });
 
     // BIND
     let node = g.selectAll(".node")
@@ -55,28 +63,41 @@ window.gcexports.viewer = (() => {
       });
 
     // EXIT
-    node.exit().remove();
+    node.exit()
+      .remove();
 
     // ENTER
     let enter = node.enter().append("g")
       .attr("class", (d) => {
         return "node" + (d.children ? " node--internal" : " node--leaf");
+      })
+      .attr("transform", (d) => {
+        return "translate(" + project(d.x, d.y) + ")";
       });
     enter.append("circle")
-      .attr("r", 5);
+      .attr("opacity", (d) => {
+        return d.data.name ? .7 : 0;
+      })
+      .attr("r", 4)
     enter.append("text")
       .attr("dy", ".31em");
 
     // UPDATE+ENTER
     let merge = enter.merge(node)
+    .transition(t)
       .attr("transform", (d) => {
         return "translate(" + project(d.x, d.y) + ")";
       });
     merge.selectAll("text")
-      .attr("x", function(d) { return d.x < 180 === !d.children ? 10 : -10; })
-      .style("text-anchor", (d) => {
-        return d.x < 180 === !d.children ? "start" : "end";
+      .attr("x", (d) => {
+        return -15;
+//        return d.x < 180 === !d.children ? 20 : -20;
       })
+      .style("text-anchor", (d) => {
+        return "middle";
+//        return d.x < 180 === !d.children ? "start" : "end";
+      })
+    .transition(t)
       .attr("transform", function(d) {
         if (doRadial) {
           return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")";

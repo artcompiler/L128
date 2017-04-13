@@ -1,5 +1,6 @@
 /* @flow */
 window.gcexports.globalLexicon = {
+    "size" : { "tk": 1, "name": "SIZE", "cls": "function", "length": 2 , "arity": 2 },
     "val" : { "tk": 1, "name": "VAL", "cls": "function", "length": 2 , "arity": 2 },
     "key" : { "tk": 1, "name": "KEY", "cls": "function", "length": 2 , "arity": 2 },
     "len" : { "tk": 1, "name": "LEN", "cls": "function", "length": 1 , "arity": 1 },
