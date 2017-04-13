@@ -8,99 +8,113 @@ window.gcexports.viewer = (() => {
     return null;
   }
   function draw(data) {
-    let totalCount = 30;
-    let width = 540,
-    height = 540,
-    radius = 200;
-    let arc = d3.arc()
-    	.outerRadius(radius - 10)
-    	.innerRadius(100);
-    let pie = d3.pie()
-      .sort(null)
-      .value((d) => {
-	return d.count;
-      });
-    let svg = d3.select('#chart').append("svg")
-      .attr("width", width)
+    const doRadial = false;
+    let width = window.innerWidth
+      || document.documentElement.clientWidth
+      || document.body.clientWidth;
+    let height =
+      window.gcexports.height ||
+      window.innerHeight ||
+      document.documentElement.clientHeight ||
+      document.body.clientHeight;
+    let svg = d3.select("#chart").select("svg")
       .attr("height", height)
-      .append("g")
-      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-    svg.append("text")
-      .attr("text-anchor", "middle")
-      .attr('font-size', '2em')
-      .attr("dy", ".50em")
-      .text("Release"); 
-    let g = svg.selectAll(".arc")
-      .data(pie(data))
-      .enter().append("g");
-    g.append("path")
-      .attr("d", arc)
-      .style("fill", (d,i) => {
-      	return d.data.color;
-      });
-    g.append("text")
-      .attr("transform", (d) => {
-        let _d = arc.centroid(d);
-        _d[0] *= 1.5;	//multiply by a constant factor
-        _d[1] *= 1.5;	//multiply by a constant factor
-        return "translate(" + _d + ")";
-      })
-      .attr("alignment-baseline", (d) => {
-        let _d = arc.centroid(d);
-        return _d[1] < 0 ? "baseline" : "hanging";
-      })
-      .attr("dy", ".50em")
-      .style("text-anchor", (d) => {
-        let _d = arc.centroid(d);
-        return _d[0] < 0 ? "end" : "start";
-      })
-      .text((d) => {
+      .attr("width", width);
+    let g = svg.select("g");
+    if (doRadial) {
+      g.attr("transform", "translate(" + (width / 2 + 40) + "," + (height / 2 + 90) + ")");
+    } else {
+      g.attr("transform", "translate(" + (50) + "," + (50) + ")");
+    }
+    let tree = d3.tree()
+      .size([width, height])
+      .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+    let root = tree(d3.hierarchy(data, (d) => {
+      return d.children;
+    }));
+
+    let link = 
+      g.selectAll(".link")
+        .data(root.descendants().slice(1));
+    link.enter().append("path")
+        .attr("class", "link")
+      .merge(link)
+        .attr("d", function(d) {
+          return "M" + project(d.x, d.y)
+            + "C" + project(d.x, (d.y + d.parent.y) / 2)
+            + " " + project(d.parent.x, (d.y + d.parent.y) / 2)
+            + " " + project(d.parent.x, d.parent.y);
+        });
+    link.exit().remove();
+
+
+    // BIND
+    let node = g.selectAll(".node")
+      .data(root.descendants(), (d) => {
         return d.data.name;
       });
-    g.selectAll("text")
-      .call(wrap, 30);
-  }
 
-  function wrap(text, width) {
-    text.each(function() {
-      var text = d3.select(this),
-      words = text.text().split(/\s+/).reverse(),
-      word,
-      line = [],
-      lineNumber = 0,
-      lineHeight = 0.5, // ems
-      y = text.attr("y"),
-      dy = parseFloat(text.attr("dy")),
-      tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-      while (word = words.pop()) {
-        line.push(word);
-        tspan.text(line.join(" "));
-        if (tspan.node().getComputedTextLength() > width) {
-          line.pop();
-          tspan.text(line.join(" "));
-          line = [word];
-          tspan = text.append("tspan")
-            .attr("x", 0)
-            .attr("y", y)
-            .attr("dy", ++lineNumber * lineHeight + dy + "em")
-            .text(word);
+    // EXIT
+    node.exit().remove();
+
+    // ENTER
+    let enter = node.enter().append("g")
+      .attr("class", (d) => {
+        return "node" + (d.children ? " node--internal" : " node--leaf");
+      });
+    enter.append("circle")
+      .attr("r", 5);
+    enter.append("text")
+      .attr("dy", ".31em");
+
+    // UPDATE+ENTER
+    let merge = enter.merge(node)
+      .attr("transform", (d) => {
+        return "translate(" + project(d.x, d.y) + ")";
+      });
+    merge.selectAll("text")
+      .attr("x", function(d) { return d.x < 180 === !d.children ? 10 : -10; })
+      .style("text-anchor", (d) => {
+        return d.x < 180 === !d.children ? "start" : "end";
+      })
+      .attr("transform", function(d) {
+        if (doRadial) {
+          return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")";
+        } else {
+          return "rotate(0)";
         }
+      })
+      .text((d) => {
+        return d.data.name.substring(d.data.name.lastIndexOf(".") + 1);
+      });
+
+    function project(x, y) {
+      if (doRadial) {
+        let angle = (x - 90) / 180 * Math.PI, radius = y;
+        return [radius * Math.cos(angle), radius * Math.sin(angle)];
+      } else {
+        return [x/2, y/2];
       }
-    });
+    }
   }
 
   // Graffiticode looks for this React class named Viewer. The compiled code is
   // passed via props in the renderer.
   let Viewer = React.createClass({
     componentDidMount: function() {
-      draw(this.props.data);
+      draw(this.props.obj.data);
+    },
+    componentDidUpdate: function() {
+      draw(this.props.obj.data);
     },
     render: function () {
       // If you have nested components, make sure you send the props down to the
       // owned components.
       let data = this.props.obj.data;
       return (
-        <div id="chart" className="chart-container" data={data} />
+        <div id="chart" className="chart-container" data={data}>
+          <svg><g /></svg>
+        </div>
       );
     },
   });
