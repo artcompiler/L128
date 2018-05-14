@@ -237,7 +237,7 @@ window.gcexports.viewer = function () {
       return React.createElement(
         "div",
         null,
-        React.createElement("link", { rel: "stylesheet", href: "https://l128.artcompiler.com/style.css" }),
+        React.createElement("link", { rel: "stylesheet", href: "http://l128.artcompiler.com/style.css" }),
         React.createElement(
           "div",
           { className: "L128 viewer" },
