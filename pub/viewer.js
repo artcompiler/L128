@@ -196,10 +196,8 @@ window.gcexports.viewer = function () {
     });
     merge.selectAll("text").attr("x", function (d) {
       return -15;
-      //        return d.x < 180 === !d.children ? 20 : -20;
     }).style("text-anchor", function (d) {
       return "middle";
-      //        return d.x < 180 === !d.children ? "start" : "end";
     }).transition(t).attr("transform", function (d) {
       if (doRadial) {
         return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")";
@@ -238,11 +236,20 @@ window.gcexports.viewer = function () {
       var data = this.props.obj.data;
       return React.createElement(
         "div",
-        { id: "chart", className: "chart-container", data: data },
+        null,
+        React.createElement("link", { rel: "stylesheet", href: "https://l128.artcompiler.com/style.css" }),
         React.createElement(
-          "svg",
-          null,
-          React.createElement("g", null)
+          "div",
+          { className: "L128 viewer" },
+          React.createElement(
+            "div",
+            { id: "chart", className: "chart-container", data: data },
+            React.createElement(
+              "svg",
+              null,
+              React.createElement("g", null)
+            )
+          )
         )
       );
     }

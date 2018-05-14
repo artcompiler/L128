@@ -131,8 +131,13 @@ window.gcexports.viewer = (() => {
       // owned components.
       let data = this.props.obj.data;
       return (
-        <div id="chart" className="chart-container" data={data}>
+        <div>
+          <link rel="stylesheet" href="https://l128.artcompiler.com/style.css" />
+          <div className="L128 viewer">
+          <div id="chart" className="chart-container" data={data}>
           <svg><g /></svg>
+          </div>
+          </div>
         </div>
       );
     },
