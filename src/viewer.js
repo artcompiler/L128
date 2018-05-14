@@ -132,7 +132,7 @@ window.gcexports.viewer = (() => {
       let data = this.props.obj.data;
       return (
         <div>
-          <link rel="stylesheet" href="http://l128.artcompiler.com/style.css" />
+          <link rel="stylesheet" href="https://l128.artcompiler.com/style.css" />
           <div className="L128 viewer">
           <div id="chart" className="chart-container" data={data}>
           <svg><g /></svg>
